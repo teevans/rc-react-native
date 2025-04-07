@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { router } from "expo-router";
 import { API_ENDPOINTS } from "../constants/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,6 +12,31 @@ interface AuthSession {
   };
 }
 
+interface AuthState {
+  session: AuthSession | null;
+  isLoading: boolean;
+}
+
+type AuthAction =
+  | { type: "SET_SESSION"; payload: AuthSession | null }
+  | { type: "SET_LOADING"; payload: boolean };
+
+const initialState: AuthState = {
+  session: null,
+  isLoading: true,
+};
+
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case "SET_SESSION":
+      return { ...state, session: action.payload };
+    case "SET_LOADING":
+      return { ...state, isLoading: action.payload };
+    default:
+      return state;
+  }
+}
+
 interface AuthContextType {
   session: AuthSession | null;
   isLoading: boolean;
@@ -19,6 +44,7 @@ interface AuthContextType {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   createTeam: (name: string) => Promise<void>;
+  deactivateUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,8 +52,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = "@roadcase_auth_token";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
     // Check for existing session
@@ -47,25 +72,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (response.ok) {
           const userData = await response.json();
-          setSession({
-            token: storedToken,
-            user: userData,
+          dispatch({
+            type: "SET_SESSION",
+            payload: { token: storedToken, user: userData },
           });
         } else {
           // Token is invalid, clear it
           await AsyncStorage.removeItem(TOKEN_KEY);
+          dispatch({ type: "SET_SESSION", payload: null });
         }
       }
     } catch (error) {
       console.error("Error checking session:", error);
     } finally {
-      setIsLoading(false);
+      dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
+      dispatch({ type: "SET_LOADING", payload: true });
       const response = await fetch(API_ENDPOINTS.LOGIN, {
         method: "POST",
         headers: {
@@ -83,21 +109,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json();
+      console.log("AuthContext - Login Response:", data);
+
       // Store token
       await AsyncStorage.setItem(TOKEN_KEY, data.token);
-      setSession(data);
+
+      // Fetch user profile after login
+      const userResponse = await fetch(API_ENDPOINTS.USER_PROFILE, {
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch user profile");
+      }
+
+      const userData = await userResponse.json();
+      console.log("AuthContext - User Profile:", userData);
+
+      // Update session state with both token and user data
+      const sessionData = {
+        token: data.token,
+        user: userData,
+      };
+      dispatch({ type: "SET_SESSION", payload: sessionData });
+      console.log("AuthContext - Session Updated:", sessionData);
+
       router.replace("/(tabs)");
     } catch (error) {
       console.error("Error signing in:", error);
       throw error;
     } finally {
-      setIsLoading(false);
+      dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
   const signUp = async (name: string, email: string, password: string) => {
     try {
-      setIsLoading(true);
+      dispatch({ type: "SET_LOADING", payload: true });
       const response = await fetch(API_ENDPOINTS.REGISTER, {
         method: "POST",
         headers: {
@@ -113,13 +163,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       // Store token
       await AsyncStorage.setItem(TOKEN_KEY, data.token);
-      setSession(data);
+      dispatch({ type: "SET_SESSION", payload: data });
       router.replace("/onboarding");
     } catch (error) {
       console.error("Error signing up:", error);
       throw error;
     } finally {
-      setIsLoading(false);
+      dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
@@ -127,21 +177,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Clear stored token
       await AsyncStorage.removeItem(TOKEN_KEY);
-      setSession(null);
+      dispatch({ type: "SET_SESSION", payload: null });
       router.replace("/login");
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
+  const deactivateUser = async () => {
+    try {
+      dispatch({ type: "SET_LOADING", payload: true });
+      const response = await fetch(API_ENDPOINTS.DEACTIVATE_USER, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${state.session?.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to deactivate account");
+      }
+
+      // Sign out after deactivation
+      await signOut();
+    } catch (error) {
+      console.error("Error deactivating account:", error);
+      throw error;
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
   const createTeam = async (name: string) => {
     try {
-      setIsLoading(true);
+      dispatch({ type: "SET_LOADING", payload: true });
       const response = await fetch(API_ENDPOINTS.CREATE_TEAM, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.token}`,
+          Authorization: `Bearer ${state.session?.token}`,
         },
         body: JSON.stringify({ name }),
       });
@@ -155,19 +229,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Error creating team:", error);
       throw error;
     } finally {
-      setIsLoading(false);
+      dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
   return (
     <AuthContext.Provider
       value={{
-        session,
-        isLoading,
+        session: state.session,
+        isLoading: state.isLoading,
         signIn,
         signUp,
         signOut,
         createTeam,
+        deactivateUser,
       }}
     >
       {children}

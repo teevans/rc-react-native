@@ -19,8 +19,8 @@ import { useColorScheme, COLORS, FONTS } from "@/hooks/useColorScheme";
 
 export default function LoginScreen() {
   const { signIn, isLoading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("tevans3@icloud.com");
+  const [password, setPassword] = useState("R@m1500!");
   const [error, setError] = useState("");
 
   const colorScheme = useColorScheme();

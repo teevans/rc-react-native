@@ -49,7 +49,45 @@ function RootLayout() {
     return null;
   }
 
-  return [];
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+        contentStyle: {
+          backgroundColor: COLORS(colorScheme).BACKGROUND,
+        },
+      }}
+    >
+      <Stack.Screen
+        name="login"
+        options={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: COLORS(colorScheme).BACKGROUND,
+          },
+        }}
+      />
+      <Stack.Screen
+        name="register"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="onboarding"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="(tabs)"
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack>
+  );
 }
 
 export default () => {
@@ -57,43 +95,6 @@ export default () => {
   return (
     <AuthProvider>
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: "slide_from_right",
-          contentStyle: {
-            backgroundColor: COLORS(colorScheme).BACKGROUND,
-          },
-        }}
-      >
-        <Stack.Screen
-          name="login"
-          options={{
-            headerShown: false,
-            contentStyle: {
-              backgroundColor: COLORS(colorScheme).BACKGROUND,
-            },
-          }}
-        />
-        <Stack.Screen
-          name="register"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="onboarding"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
-      </Stack>
       <RootLayout />
     </AuthProvider>
   );

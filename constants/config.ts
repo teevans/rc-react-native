@@ -5,4 +5,5 @@ export const API_ENDPOINTS = {
   REGISTER: `${API_BASE_URL}/register`,
   CREATE_TEAM: `${API_BASE_URL}/teams`,
   USER_PROFILE: `${API_BASE_URL}/user`,
+  DEACTIVATE_USER: `${API_BASE_URL}/user/deactivate`,
 };
