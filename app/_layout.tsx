@@ -41,7 +41,7 @@ function RootLayout() {
       router.replace("/login");
     } else if (session && (inAuthGroup || inOnboarding)) {
       // Redirect to home if authenticated and trying to access auth screens
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/shows");
     }
   }, [session, segments, isLoading]);
 
@@ -84,6 +84,20 @@ function RootLayout() {
         name="(tabs)"
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="event/[id]"
+        options={{
+          headerShown: true,
+          headerTitle: "Event Details",
+        }}
+      />
+      <Stack.Screen
+        name="event/new"
+        options={{
+          headerShown: true,
+          headerTitle: "New Event",
         }}
       />
     </Stack>

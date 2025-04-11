@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: "SET_SESSION", payload: sessionData });
       console.log("AuthContext - Session Updated:", sessionData);
 
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/shows");
     } catch (error) {
       console.error("Error signing in:", error);
       throw error;
@@ -224,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to create team");
       }
 
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/shows");
     } catch (error) {
       console.error("Error creating team:", error);
       throw error;
